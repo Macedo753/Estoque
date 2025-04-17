@@ -1,0 +1,14 @@
+{
+    "luis": {
+        "senha": "custodio123",
+        "tipo": "admin"
+    },
+    "Luciane": {
+        "senha": "991595755",
+        "tipo": "funcionario"
+    },
+    "Orlando": {
+        "senha": "984306655",
+        "tipo": "funcionario"
+    }
+}

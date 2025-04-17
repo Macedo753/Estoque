@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Imprimir Estoque</title>
+  <style>
+    body { font-family: Arial; margin: 40px; }
+    h1 { text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
+    @media print {
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Relatório de Estoque</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Produto</th>
+        <th>Qtd em Estoque</th>
+        <th>Valor (R$)</th>
+        <th>Qtd Vendida</th>
+        <th>Faturado (R$)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set total = 0 %}
+      {% for codigo, produto in estoque.items() %}
+      {% set vendido = produto.get('vendido', 0) %}
+      {% set valor = produto.get('valor', 0) %}
+      {% set subtotal = vendido * valor %}
+      {% set total = total + subtotal %}
+      <tr>
+        <td>{{ produto.nome }}</td>
+        <td>{{ produto.quantidade }}</td>
+        <td>R$ {{ '%.2f'|format(valor) }}</td>
+        <td>{{ vendido }}</td>
+        <td>R$ {{ '%.2f'|format(subtotal) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+   
+  </table>
+  <div class="no-print" style="margin-top: 20px;">
+    <button onclick="window.print()">🖨️ Imprimir</button>
+  </div>
+</body>
+</html>
