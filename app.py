@@ -1,3 +1,6 @@
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from flask import Flask, render_template, request, redirect, session
 import json
 import os
@@ -11,7 +14,6 @@ app.secret_key = 'minha_chave_secreta'
 estoque = {}
 
 def carregar_usuarios():
-    # Tenta abrir o arquivo JSON de usuários, caso contrário, retorna um dicionário vazio
     try:
         with open('usuarios.json', 'r') as f:
             return json.load(f)
@@ -19,17 +21,42 @@ def carregar_usuarios():
         return {}
 
 def salvar_usuarios(usuarios):
-    # Salva os usuários no arquivo JSON
     with open('usuarios.json', 'w') as f:
         json.dump(usuarios, f, indent=4)
 
-# Função para verificar se algum produto está com estoque baixo
 def verificar_estoque_baixo():
     estoque_baixo = []
     for codigo, produto in estoque.items():
-        if produto['quantidade'] <= 10:  # Definindo que o estoque baixo é quando o produto tem 10 ou menos unidades
+        if produto['quantidade'] <= 5:  # Definindo estoque baixo como <= 5 unidades
             estoque_baixo.append(produto)
     return estoque_baixo
+
+def enviar_email_estoque_baixo(produtos_baixo):
+    sender_email = "luisgustavobqcustodio07@gmail.com"
+    receiver_email = "luisgustavobqcustodio@gmail.com"
+    password = "owec clvo uiyv vgar"  # Use a senha de app ou a senha normal se apps menos seguros estiverem habilitados
+
+    subject = "Alerta: Estoque baixo"
+    body = "Atenção, os seguintes produtos estão com estoque baixo:\n"
+    for produto in produtos_baixo:
+        body += f"- {produto['nome']} ({produto['quantidade']} unidades restantes)\n"
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, password)
+        server.sendmail(sender_email, receiver_email, msg.as_string())
+        server.close()
+        print("E-mail enviado com sucesso!")
+    except Exception as e:
+        print(f"Erro ao enviar e-mail: {str(e)}")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -50,15 +77,21 @@ def logout():
     session.clear()
     return redirect('/login')
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def home():
     if 'usuario' not in session:
         return redirect('/login')
 
+    # Pesquisa de produto
+    pesquisa = request.args.get('pesquisa', '')
+    produtos_filtrados = {codigo: produto for codigo, produto in estoque.items() if pesquisa.lower() in produto['nome'].lower() or pesquisa.lower() in codigo.lower()}
+
     # Chama a função para verificar estoque baixo
     produtos_baixo = verificar_estoque_baixo()
+    if produtos_baixo:
+        enviar_email_estoque_baixo(produtos_baixo)
 
-    return render_template('index.html', estoque=estoque, usuario=session['usuario'], tipo=session['tipo'], produtos_baixo=produtos_baixo)
+    return render_template('index.html', estoque=produtos_filtrados, usuario=session['usuario'], tipo=session['tipo'], produtos_baixo=produtos_baixo, pesquisa=pesquisa)
 
 @app.route('/adicionar', methods=['POST'])
 def adicionar():
@@ -95,11 +128,8 @@ def vender(codigo):
         quantidade_venda = int(request.form['quantidade'])
         if estoque[codigo]["quantidade"] >= quantidade_venda:
             estoque[codigo]["quantidade"] -= quantidade_venda
-
-            # Atualiza total vendido
             estoque[codigo]["vendido"] += quantidade_venda
 
-            # Atualiza vendas por funcionário
             if usuario not in estoque[codigo]["vendas_por_funcionario"]:
                 estoque[codigo]["vendas_por_funcionario"][usuario] = 0
             estoque[codigo]["vendas_por_funcionario"][usuario] += quantidade_venda
