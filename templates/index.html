@@ -38,6 +38,18 @@
     </form>
     {% endif %}
 
+    <!-- Alerta de estoque baixo -->
+    {% if produtos_baixo %}
+    <div class="alert alert-warning" role="alert">
+      Atenção: O(s) seguinte(s) produto(s) estão com estoque baixo:
+      <ul>
+        {% for produto in produtos_baixo %}
+        <li>{{ produto.nome }} ({{ produto.quantidade }} unidades restantes)</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
     <div class="d-flex justify-content-between align-items-center">
       <h2>Produtos</h2>
       <a href="/imprimir" class="btn btn-outline-primary" target="_blank">🖨️ Imprimir Estoque</a>

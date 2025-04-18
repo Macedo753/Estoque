@@ -1,22 +1,35 @@
 from flask import Flask, render_template, request, redirect, session
 import json
 import os
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///estoque.db'
-
-
 
 app = Flask(__name__)
+
+# Configuração do banco de dados
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///estoque.db'
 app.secret_key = 'minha_chave_secreta'
 
 estoque = {}
 
 def carregar_usuarios():
-    with open('usuarios.json', 'r') as f:
-        return json.load(f)
+    # Tenta abrir o arquivo JSON de usuários, caso contrário, retorna um dicionário vazio
+    try:
+        with open('usuarios.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
 
 def salvar_usuarios(usuarios):
+    # Salva os usuários no arquivo JSON
     with open('usuarios.json', 'w') as f:
         json.dump(usuarios, f, indent=4)
+
+# Função para verificar se algum produto está com estoque baixo
+def verificar_estoque_baixo():
+    estoque_baixo = []
+    for codigo, produto in estoque.items():
+        if produto['quantidade'] <= 10:  # Definindo que o estoque baixo é quando o produto tem 10 ou menos unidades
+            estoque_baixo.append(produto)
+    return estoque_baixo
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -41,7 +54,11 @@ def logout():
 def home():
     if 'usuario' not in session:
         return redirect('/login')
-    return render_template('index.html', estoque=estoque, usuario=session['usuario'], tipo=session['tipo'])
+
+    # Chama a função para verificar estoque baixo
+    produtos_baixo = verificar_estoque_baixo()
+
+    return render_template('index.html', estoque=estoque, usuario=session['usuario'], tipo=session['tipo'], produtos_baixo=produtos_baixo)
 
 @app.route('/adicionar', methods=['POST'])
 def adicionar():
